@@ -1,52 +1,55 @@
-# SidebarChat
+# sidebarChat
 
-Open any Discord channel or DM in a side panel or popout window without leaving your current view.
+## The fixes
 
-## What's Fixed
+The original plugin was completely broken on recent Equicord builds. I got it working again by tackling two main crashes:
 
-The original plugin was broken on current Equicord. Two critical issues resolved:
+### 1. React hooks crash
 
-### 1. React Hooks Crash (#321)
-`renderSidebar()` used React hooks (`useState`, `useEffect`, etc.) inside a class component's `render()` method. React requires hooks to be called at the top level of a function component or custom hook — never inside class methods, loops, or conditions.
+The plugin was trying to use hooks (`useState`, `useEffect`) directly inside a class component's `render()` method. React throws a fit if you do this because hooks have to stay at the top level of function components.
 
-**Fix:** Extracted all hook logic into a standalone `SidebarView` function component at module level. The original `renderSidebar()` now delegates to this component, keeping hooks on their own fiber tree.
+To fix it, I pulled all the hook logic out into a separate `SidebarView` function component. The old `renderSidebar()` method now just handles the rendering, letting the hooks run safely on their own fiber tree.
 
-### 2. ChannelSectionStore Crash
-The plugin imported `ChannelSectionStore` from `@webpack/common/stores`, but this store doesn't exist in Equicord's current store registry. This threw a runtime error on load.
+### 2. Missing ChannelSectionStore
 
-**Fix:** Wrapped the store lookup in try-catch. The selector gracefully returns `null` when the store is unavailable, and the stores array is filtered to exclude null entries.
+The plugin was looking for `ChannelSectionStore` in the common stores registry, but Equicord doesn't include it anymore. This was causing an immediate runtime crash when the plugin tried to load.
 
-### 3. Minor Fixes
-- Added `EquicordDevs.darkharden` author to `src/utils/constants.ts`
-- Updated plugin authors list
+I wrapped the store lookup in a try-catch block. The selector now defaults to `null` if the store is missing, and I added a filter to drop any null values so it doesn't break the rest of the array.
 
-## Installation
+### Minor changes
 
-1. Copy the `sidebarChat` folder to your Equicord `src/equicordplugins/` directory
-2. Add `darkharden` entry to `src/utils/constants.ts` if not present:
-   ```ts
-   darkharden: {
-       name: "darkharden",
-       discord: "95976916237975552",
-   },
-   ```
-3. Build Equicord
+* Added the author entry to `constants.ts`.
+* Updated the credit list.
 
-## Usage
+## Getting it installed
 
-- Click the sidebar icon in the channel header to open a channel as a sidebar
-- Drag the sidebar to reposition (left/right)
-- Use the popout button for a floating window
-- Switch channels directly within the sidebar
+1. Drop the `sidebarChat` folder straight into your `src/equicordplugins/` directory.
+2. Make sure the author entry is in `src/utils/constants.ts`:
+```ts
+darkharden: {
+    name: "darkharden",
+    discord: "95976916237975552",
+},
 
-## Files
+```
 
-- `index.tsx` — Main plugin logic, patches, and UI components
-- `store.ts` — Plugin state management
-- `styles.css` — Sidebar and popout styling
+
+3. Rebuild Equicord.
+
+## How to use it
+
+* Click the new sidebar icon in the channel header to open that chat on the side.
+* Drag the panel edge to switch it between the left and right sides of your client.
+* Use the popout button to open the channel in a dedicated, floating window.
+* You can switch channels right inside the sidebar itself.
+
+## Project structure
+
+* `index.tsx` — All the main plugin logic, patches, and UI views.
+* `store.ts` — State management.
+* `styles.css` — Layout and popout styles.
 
 ## Credits
 
-- **Joona** — Original plugin
-- **justjxke** — Original plugin
-- **darkharden** — Fixes for current Equicord compatibility
+* **Joona** & **justjxke** — Original plugin design and code.
+* **darkharden** — Compatibility updates for current Equicord.
